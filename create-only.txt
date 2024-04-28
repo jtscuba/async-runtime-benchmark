@@ -1,0 +1,10 @@
+http://localhost:8081/create POST {"name": "john", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Dave", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Steve", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Mike", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Isabelle", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Amy", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Kira", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Sammy", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Beth", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}
+http://localhost:8081/create POST {"name": "Beth", "email": "jdoe@gmail.com", "attributes": {"age": "25", "birthday": "1995-01-01"}}

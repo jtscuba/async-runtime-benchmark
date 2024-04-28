@@ -9,12 +9,25 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/google/uuid"
 )
 
 type user struct {
 	Name       string            `json:"name"`
 	Email      string            `json:"email"`
 	Attributes map[string]string `json:"attributes"`
+}
+
+type dbUser struct {
+	Id         string            `json:"id"`
+	Name       string            `json:"name"`
+	Email      string            `json:"email"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+type listResponse struct {
+	Items             []dbUser `json:"items"`
+	ContinuationToken string   `json:"continuationToken"`
 }
 
 func main() {
@@ -44,13 +57,13 @@ func main() {
 	_, err = dynamoDBClient.CreateTable(&dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
-				AttributeName: aws.String("Name"),
+				AttributeName: aws.String("Id"),
 				AttributeType: aws.String("S"),
 			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
-				AttributeName: aws.String("Name"),
+				AttributeName: aws.String("Id"),
 				KeyType:       aws.String("HASH"),
 			},
 		},
@@ -75,17 +88,24 @@ func main() {
 		var p user
 		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
+			fmt.Println(err)
 			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
 
 		tableName := "MyTable"
 		item := map[string]*dynamodb.AttributeValue{}
+		// generate random uuid
+		uuid := uuid.New().String()
+		item["Id"] = &dynamodb.AttributeValue{S: aws.String(uuid)}
 		item["Name"] = &dynamodb.AttributeValue{S: aws.String(p.Name)}
 		item["Email"] = &dynamodb.AttributeValue{S: aws.String(p.Email)}
+
+		attributesMap := make(map[string]*dynamodb.AttributeValue)
 		for k, v := range p.Attributes {
-			item[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			attributesMap[k] = &dynamodb.AttributeValue{S: aws.String(v)}
 		}
+		item["Attributes"] = &dynamodb.AttributeValue{M: attributesMap}
 
 		input := &dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
@@ -105,31 +125,52 @@ func main() {
 		limit := 1000
 		var lastEvaluatedKey map[string]*dynamodb.AttributeValue
 
-		for {
-			input := &dynamodb.ScanInput{
-				TableName: aws.String(tableName),
-				Limit:     aws.Int64(int64(limit)),
-			}
-			if lastEvaluatedKey != nil {
-				input.ExclusiveStartKey = lastEvaluatedKey
-			}
-
-			result, err := dynamoDBClient.Scan(input)
-			if err != nil {
-				fmt.Println(err)
-				http.Error(w, "Failed to list items", http.StatusInternalServerError)
-				return
-			}
-
-			for _, item := range result.Items {
-				json.NewEncoder(w).Encode(item)
-			}
-
-			lastEvaluatedKey = result.LastEvaluatedKey
-			if lastEvaluatedKey == nil {
-				break
+		input := &dynamodb.ScanInput{
+			TableName: aws.String(tableName),
+			Limit:     aws.Int64(int64(limit)),
+		}
+		// Get the continuation token from the query parameter
+		continuationToken := r.URL.Query().Get("continuationToken")
+		if continuationToken != "" {
+			input.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+				"Id": {
+					S: aws.String(continuationToken),
+				},
 			}
 		}
+		result, err := dynamoDBClient.Scan(input)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, "Failed to list items", http.StatusInternalServerError)
+			return
+		}
+
+		listResp := listResponse{}
+		for _, item := range result.Items {
+			// convert dynamodb item to dbUser struct
+			attributes := map[string]string{}
+			for k, v := range item["Attributes"].M {
+				attributes[k] = *v.S
+			}
+
+			user := dbUser{
+				Id:         *item["Id"].S,
+				Name:       *item["Name"].S,
+				Email:      *item["Email"].S,
+				Attributes: attributes,
+			}
+
+			listResp.Items = append(listResp.Items, user)
+		}
+
+		lastEvaluatedKey = result.LastEvaluatedKey
+		if lastEvaluatedKey != nil {
+			// Generate the continuation token for the next iteration
+			continuationToken = *lastEvaluatedKey["Id"].S
+			listResp.ContinuationToken = continuationToken
+		}
+
+		json.NewEncoder(w).Encode(listResp)
 	})
 
 	http.ListenAndServe(":8081", nil)
