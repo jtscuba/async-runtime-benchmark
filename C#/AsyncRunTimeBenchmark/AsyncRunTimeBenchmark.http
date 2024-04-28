@@ -1,0 +1,6 @@
+@AsyncRunTimeBenchmark_HostAddress = http://localhost:5233
+
+GET {{AsyncRunTimeBenchmark_HostAddress}}/GetDataBaseTables/
+Accept: application/json
+
+###
