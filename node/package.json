@@ -2,10 +2,15 @@
   "name": "express-async-demo",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "aws-sdk": "2.1608.0",
+    "uuid": "9.0.1"
+  }
 }

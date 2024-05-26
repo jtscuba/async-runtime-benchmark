@@ -1,1 +1,2 @@
 rust/target
+**/node_modules
